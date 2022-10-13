@@ -44,31 +44,33 @@ class Environment:
         
     def __post_init__(self):
         
-        x = random.randint(0,self._width)
-        y = random.randint(0,self._height)
+        x = random.randint(0,self._width-1)
+        y = random.randint(0,self._height-1)
         if (x == 0) and (y == 0):
-            x = random.randint(self._width)
-            y = random.randint(self._height) 
+            x = random.randint(0,self._width-1)
+            y = random.randint(0,self._height-1) 
         self._wumpus_loc = Coords(x,y)
         
-        x = random.randint(0,self._width)
-        y = random.randint(0,self._height)
+        x = random.randint(0,self._width-1)
+        y = random.randint(0,self._height-1)
         if (x == 0) and (y == 0):
-            x = random.randint(self._width)
-            y = random.randint(self._height) 
+            x = random.randint(0,self._width-1)
+            y = random.randint(0,self._height-1) 
         self._gold_loc = Coords(x,y)
         
         cell_indx = []
-        for x in range(0,self._width):
-            for y in range(0,self._height):
+        for x in range(0,self._width-1):
+            for y in range(0,self._height-1):
                 cell_indx.append(Coords(x,y))
         
         filtered=[]
         for cell in cell_indx:
-            if random.random() < self._pit_prob:
+            if (random.random() < self._pit_prob) and (cell is not Coords(0,0)):
                 filtered.append(cell)
         
         self._pit_locs = filtered
+        
+        
                 
         
         
@@ -109,13 +111,13 @@ class Environment:
             return False
         
     def __is_agent_at(self,coords):
-        if coords == self._agent_state.location[0]:
+        if coords == self._agent_state.location:
             return True
         else:
             return False
         
     def __is_glitter_at(self,coords):
-        if self._gold_loc == self._agent_state.location[0]:
+        if self._gold_loc == self._agent_state.location:
             return True
         else:
             return False
@@ -129,13 +131,13 @@ class Environment:
     def __is_wumpus_hit(self):
         
         if ((self._agent_state.has_arrow == True) and (self._wumpus_alive == True)):
-            if ((self._agent_state.orientation == Orientation.East) and (self._agent_state.location[0].x < self._wumpus_loc.x) and (self._agent_state.location[0].y == self._wumpus_loc.y)):
+            if ((self._agent_state.orientation == Orientation.East.name) and (self._agent_state.location.x < self._wumpus_loc.x) and (self._agent_state.location.y == self._wumpus_loc.y)):
                 return True
-            elif ((self._agent_state.orientation == Orientation.West) and (self._agent_state.location[0].x > self._wumpus_loc.x) and (self._agent_state.location[0].y == self._wumpus_loc.y)):
+            elif ((self._agent_state.orientation == Orientation.West.name) and (self._agent_state.location.x > self._wumpus_loc.x) and (self._agent_state.location.y == self._wumpus_loc.y)):
                 return True
-            elif ((self._agent_state.orientation == Orientation.South) and (self._agent_state.location[0].x == self._wumpus_loc.x) and (self._agent_state.location[0].y > self._wumpus_loc.y)):
+            elif ((self._agent_state.orientation == Orientation.South.name) and (self._agent_state.location.x == self._wumpus_loc.x) and (self._agent_state.location.y > self._wumpus_loc.y)):
                 return True
-            elif ((self._agent_state.orientation == Orientation.North) and (self._agent_state.location[0].x == self._wumpus_loc.x) and (self._agent_state.location[0].y < self._wumpus_loc.y)):
+            elif ((self._agent_state.orientation == Orientation.North.name) and (self._agent_state.location.x == self._wumpus_loc.x) and (self._agent_state.location.y < self._wumpus_loc.y)):
                 return True
             else:
                 return False
@@ -149,52 +151,54 @@ class Environment:
         return any([self._wumpus_loc == cell for cell in coords.cells_adjacent(self._width,self._height)])
     
     def __is_breeze(self):
-        return self.__is_pit_adjacent(self._agent_state.location[0])
+        return self.__is_pit_adjacent(self._agent_state.location)
         
     def __is_stench(self):
-        return ((self.__is_wumpus_adjacent(self._agent_state.location[0])) or (self.__is_wumpus_at(self._agent_state.location[0])))
+        return ((self.__is_wumpus_adjacent(self._agent_state.location)) or (self.__is_wumpus_at(self._agent_state.location)))
     
     def applyAction(self,action):
+        print('Was Facing:',self._agent_state.orientation.name)
+
         if self._terminated:
             return Percept(False,False,False,False,False,True,0)
         else:
             if action == Action.Forward.name:
-                prev_loc = self._agent_state.location[0]
+                prev_loc = self._agent_state.location
                 self._agent_state.forward(self._width,self._height)
-                self._terminated = ((self.__is_wumpus_at(self._agent_state.location[0])) and (self._wumpus_alive)) or (self.__is_pit_at(self._agent_state.location[0]))
+                self._terminated = ((self.__is_wumpus_at(self._agent_state.location)) and (self._wumpus_alive)) or (self.__is_pit_at(self._agent_state.location))
                 self._agent_state.is_alive = not self._terminated
                 if self._agent_state.has_gold:
-                    self._gold_loc = self.agent_state.location
+                    self._gold_loc = self._agent_state.location
                 if self._agent_state.is_alive:
                     reward = -1
                 else:
                     reward = -1001
-                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location[0]),prev_loc == self._agent_state.location[0],False,not self._agent_state.is_alive,reward)
+                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location),prev_loc == self._agent_state.location,False,not self._agent_state.is_alive,reward)
             
             elif action == Action.TurnLeft.name:
                 self._agent_state.turnLeft()
-                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location[0]),False,False,False,-1)
+                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location),False,False,False,-1)
             
             elif action == Action.TurnRight.name:
                 self._agent_state.turnRight()
-                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location[0]),False,False,False,-1)
+                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location),False,False,False,-1)
             
             elif action == Action.Grab.name:
-                self._agent_state.has_gold = self.__is_gold_at(self._agent_state.location[0])
+                self._agent_state.has_gold = self.__is_gold_at(self._agent_state.location)
                 if self._agent_state.has_gold:
-                    self._gold_loc = self._agent_state.location[0]
+                    self._gold_loc = self._agent_state.location
                     
-                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location[0]),False,False,False,-1)
+                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location),False,False,False,-1)
             
             elif action == Action.Climb.name:
-                in_start_loc = self._agent_state.location[0] == Coords(0,0)
+                in_start_loc = self._agent_state.location == Coords(0,0)
                 success = self._agent_state.has_gold and in_start_loc
                 self._terminated = success or (self._climb_without_gold and in_start_loc)
                 if success:
                     reward = 999
                 else:
                     reward = -1
-                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location[0]),False,False,False,reward)
+                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location),False,False,False,reward)
             
             elif action == Action.Shoot.name:
                 hadarrow = self._agent_state.has_arrow
@@ -205,14 +209,16 @@ class Environment:
                 self._agent_state.use_arrow()
                 wumpuskilled = self.__is_wumpus_hit()
                 self._wumpus_alive = not wumpuskilled
-                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location[0]),False,wumpuskilled,False,reward)
+                return Percept(self.__is_stench(),self.__is_breeze(),self.__is_glitter_at(self._agent_state.location),False,wumpuskilled,False,reward)
 
     def visualize(self):
+        print('Now Facing:',self._agent_state.orientation.name)
+
         if (self._wumpus_alive):
             wumpus_symbol = "W" 
         else: 
             wumpus_symbol = "w"
-        for y in np.arange(self._height-1,0,-1):
+        for y in np.arange(self._height-1,-1,-1):
             for x in np.arange(0,self._width):
                 if self.__is_agent_at(Coords(x,y)):
                     print("A",end='')

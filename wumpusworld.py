@@ -11,21 +11,26 @@ from naiveagent import NaiveAgent
 def main(num_lives=1):
     for i in range(num_lives):
         print("Life ",i+1,"/",num_lives)
-        env = Environment(4,4,0.2,False)
+        env = Environment(4,4,0.1,False)
         agent = NaiveAgent()
         percept = Percept(False, False, False, False, False, False, 0)
-        runEpisode(env, agent, percept)
+        total_reward = runEpisode(env, agent, percept)
+        print('Final Score:',total_reward)
 
 def runEpisode(env, agent, percept):
+    total = 0
     while (not percept.isTerminated):
         nextAction = agent.nextAction(percept)
         print("Action:", nextAction)
         percept = env.applyAction(nextAction)
-        print(env.visualize())
-        print(percept.show_percept())
+        env.visualize()
+        percept.show_percept()
+        total += percept.reward
+    return total
+        
       
 
 
 if __name__ == "__main__":
-    num_lives=1
+    num_lives=50
     main(num_lives)
